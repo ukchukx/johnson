@@ -23,11 +23,11 @@ defmodule Johnson do
 
     string
     |> Jason.decode!(
-      keys: fn key ->
+      keys: fn k ->
         @count_key
         |> Process.get()
         |> (& Process.put(@count_key, &1 + 1)).()
-        |> (& {&1, key}).()
+        |> (& {&1, k}).()
       end
     )
     |> new()
@@ -57,14 +57,14 @@ defmodule Johnson do
     data
     |> List.keyfind(key, 0)
     |> case do
-      {_, value} -> value
-      x -> x
+      {_, v} -> v
+      nil -> nil
     end
   end
 
-  defp new(conf) when is_map(conf) do
+  defp new(map) when is_map(map) do
     data =
-      conf
+      map
       |> Map.to_list()
       |> Enum.sort_by(fn {{idx, _}, _} -> idx end)
       |> Enum.map(fn {{_, k}, v} -> {k, new(v)} end)
@@ -79,4 +79,10 @@ end
 
 defimpl Jason.Encoder, for: Johnson do
   def encode(%{data: value}, opts), do: Jason.Encode.keyword(value, opts)
+end
+
+defimpl String.Chars, for: Johnson do
+  def to_string(struct) do
+    Jason.encode!(struct)
+  end
 end
